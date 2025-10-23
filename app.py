@@ -25,11 +25,11 @@ from xgboost import XGBRegressor, XGBClassifier
 import logging
 try:
     from pybaseball import playerid_lookup, statcast_batter
-    from pybaseball.lahman import park_factors
-    run_expectancy_matrix = None  # optional legacy placeholder
+    run_expectancy_matrix = None  # removed in pybaseball >=2.1
+    park_factors = None           # removed in pybaseball >=2.1
 except Exception as e:
     logging.warning(f"⚠️ PyBaseball import issue: {e}")
-    playerid_lookup = statcast_batter = park_factors = run_expectancy_matrix = None
+    playerid_lookup = statcast_batter = run_expectancy_matrix = park_factors = None
 
 # =============================
 # Constants & small utilities
