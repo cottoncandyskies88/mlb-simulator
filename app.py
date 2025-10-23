@@ -497,9 +497,10 @@ if page == "Live Game Tracker":
     with colC:
         auto = st.toggle("Auto-refresh", value=True)
 
-    if auto:
-        st_autorefresh = st.experimental_rerun  # placeholder; Streamlit Cloud uses st_autorefresh widget
-        st.experimental_set_query_params(_=str(int(time.time())))  # bust cache
+if auto:
+    st_autorefresh = st.rerun  # Updated for Streamlit 1.50+
+    st.query_params = {"_": str(int(time.time()))}
+
 
     if game_sel and isinstance(game_sel, tuple) and game_sel[1]:
         gamepk = game_sel[1]
