@@ -91,6 +91,30 @@ if page == "Live Game Tracker":
                     st.dataframe(df.tail(20))
                 else:
                     st.info("Waiting for play-by-play data...")
+                    
+# =============================================================
+# PlayerID lookup patch (replaces broken pybaseball function)
+# =============================================================
+import io
+
+def safe_playerid_lookup(first, last):
+    """
+    Custom version of pybaseball.playerid_lookup that handles
+    the new Chadwick CSV column names safely.
+    """
+    try:
+        url = "https://raw.githubusercontent.com/chadwickbureau/register/master/data/people.csv"
+        data = requests.get(url, timeout=10).content
+        df = pd.read_csv(io.BytesIO(data))
+        df.columns = df.columns.str.lower()
+
+        # Match first and last name using partial string match
+        mask = df["name_first"].str.contains(first, case=False, na=False) & df["name_last"].str.contains(last, case=False, na=False)
+        result = df.loc[mask, ["key_mlbam", "name_first", "name_last"]].dropna(subset=["key_mlbam"])
+        return result
+    except Exception as e:
+        st.warning(f"⚠️ Custom player lookup failed: {e}")
+        return pd.DataFrame(columns=["key_mlbam", "name_first", "name_last"])
 
 # =============================================================
 # Player Situation Simulator Page
@@ -105,7 +129,8 @@ if page == "Player Simulator":
     if playerid_lookup and statcast_batter:
         try:
             first, last = batter_name.split()[0], batter_name.split()[-1]
-            df_lookup = playerid_lookup(last=last, first=first)
+            df_lookup = safe_playerid_lookup(first, last)
+
 
             if df_lookup.empty:
                 st.warning("No player found with that name.")
