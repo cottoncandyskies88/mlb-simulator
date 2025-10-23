@@ -496,10 +496,9 @@ if page == "Live Game Tracker":
         refresh_s = st.number_input("Refresh (seconds)", min_value=3, max_value=60, step=1, value=10)
     with colC:
         auto = st.toggle("Auto-refresh", value=True)
-
-if auto:
-    st_autorefresh = st.rerun  # Updated for Streamlit 1.50+
-    st.query_params = {"_": str(int(time.time()))}
+        if auto:
+            st_autorefresh = st.rerun  # Updated for Streamlit 1.50+
+            st.query_params = {"_": str(int(time.time()))}
 
 
     if game_sel and isinstance(game_sel, tuple) and game_sel[1]:
