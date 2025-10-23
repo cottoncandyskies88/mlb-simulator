@@ -93,55 +93,38 @@ if page == "Live Game Tracker":
                     st.info("Waiting for play-by-play data...")
                     
 # =============================================================
-# Universal PlayerID lookup (supports new Chadwick CSV columns)
+# Live PlayerID lookup via MLB StatsAPI (reliable replacement)
 # =============================================================
-import io
 
 def safe_playerid_lookup(first, last):
     """
-    Works across Chadwick CSV schema versions.
-    Returns MLBAM ID and full player name if available.
+    Look up a player's MLBAM ID directly from MLB StatsAPI.
+    Much more reliable than Chadwick CSV.
     """
     try:
-        url = "https://raw.githubusercontent.com/chadwickbureau/register/master/data/people.csv"
-        data = requests.get(url, timeout=10).content
-        df = pd.read_csv(io.BytesIO(data))
-        df.columns = df.columns.str.lower()
+        query = f"{first} {last}".replace(" ", "%20")
+        url = f"https://statsapi.mlb.com/api/v1/people/search?names={query}"
+        resp = requests.get(url, timeout=10).json()
 
-        # Handle modern column names
-        id_col = None
-        for c in ["key_mlbam", "mlbam_id", "id_mlbam"]:
-            if c in df.columns:
-                id_col = c
-                break
+        people = resp.get("people", [])
+        if not people:
+            st.warning("⚠️ No players found for that name.")
+            return pd.DataFrame(columns=["key_mlbam", "player_name"])
 
-        if id_col is None:
-            st.error("Could not find MLBAM ID column in people.csv")
-            return pd.DataFrame(columns=["mlbam_id", "name_full"])
+        rows = []
+        for p in people:
+            rows.append({
+                "key_mlbam": p.get("id"),
+                "player_name": p.get("fullName"),
+                "current_team": p.get("currentTeam", {}).get("name", "N/A"),
+                "primary_position": p.get("primaryPosition", {}).get("abbreviation", "N/A")
+            })
 
-        # Determine name column
-        if "name_full" in df.columns:
-            name_col = "name_full"
-        elif "name_display_first_last" in df.columns:
-            name_col = "name_display_first_last"
-        else:
-            name_col = None
-
-        # Fallback for first/last split names
-        if name_col:
-            mask = df[name_col].str.contains(f"{first}.*{last}", case=False, na=False)
-        else:
-            mask = (
-                df.get("name_first", pd.Series("", index=df.index)).str.contains(first, case=False, na=False)
-                & df.get("name_last", pd.Series("", index=df.index)).str.contains(last, case=False, na=False)
-            )
-
-        result = df.loc[mask, [id_col, name_col] if name_col else [id_col]].dropna(subset=[id_col])
-        result.columns = ["key_mlbam", "player_name"]  # normalize columns
-        return result
+        df = pd.DataFrame(rows)
+        return df
 
     except Exception as e:
-        st.warning(f"⚠️ Custom player lookup failed: {e}")
+        st.warning(f"⚠️ MLB API lookup failed: {e}")
         return pd.DataFrame(columns=["key_mlbam", "player_name"])
 
 # =============================================================
