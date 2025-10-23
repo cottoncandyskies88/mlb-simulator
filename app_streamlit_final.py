@@ -93,14 +93,14 @@ if page == "Live Game Tracker":
                     st.info("Waiting for play-by-play data...")
                     
 # =============================================================
-# PlayerID lookup patch (replaces broken pybaseball function)
+# Updated PlayerID lookup patch (new Chadwick CSV structure)
 # =============================================================
 import io
 
 def safe_playerid_lookup(first, last):
     """
-    Custom version of pybaseball.playerid_lookup that handles
-    the new Chadwick CSV column names safely.
+    Updated version — works with new Chadwick 'people.csv'
+    which now has a single 'name_display_first_last' column.
     """
     try:
         url = "https://raw.githubusercontent.com/chadwickbureau/register/master/data/people.csv"
@@ -108,13 +108,24 @@ def safe_playerid_lookup(first, last):
         df = pd.read_csv(io.BytesIO(data))
         df.columns = df.columns.str.lower()
 
-        # Match first and last name using partial string match
-        mask = df["name_first"].str.contains(first, case=False, na=False) & df["name_last"].str.contains(last, case=False, na=False)
-        result = df.loc[mask, ["key_mlbam", "name_first", "name_last"]].dropna(subset=["key_mlbam"])
+        # Try to find by combined display name
+        if "name_display_first_last" in df.columns:
+            mask = df["name_display_first_last"].str.contains(f"{first}.*{last}", case=False, na=False)
+        else:
+            # fallback if they re-add separate columns
+            mask = (
+                df.get("name_first", pd.Series("", index=df.index))
+                .str.contains(first, case=False, na=False)
+            ) & (
+                df.get("name_last", pd.Series("", index=df.index))
+                .str.contains(last, case=False, na=False)
+            )
+
+        result = df.loc[mask, ["key_mlbam", "name_display_first_last"]].dropna(subset=["key_mlbam"])
         return result
     except Exception as e:
         st.warning(f"⚠️ Custom player lookup failed: {e}")
-        return pd.DataFrame(columns=["key_mlbam", "name_first", "name_last"])
+        return pd.DataFrame(columns=["key_mlbam", "name_display_first_last"])
 
 # =============================================================
 # Player Situation Simulator Page
