@@ -21,13 +21,13 @@ from sklearn.metrics import roc_auc_score, mean_absolute_error, r2_score
 from xgboost import XGBRegressor, XGBClassifier
 
 # --- Optional: pybaseball for Statcast (batter data & park factors)
+import logging
 try:
     from pybaseball import playerid_lookup, statcast_batter, run_expectancy_matrix, park_factors
-except Exception:
-    playerid_lookup = None
-    statcast_batter = None
-    run_expectancy_matrix = None
-    park_factors = None
+except Exception as e:
+    logging.warning(f"⚠️ PyBaseball import issue: {e}")
+    import pybaseball  # ensure module exists
+    from pybaseball import playerid_lookup, statcast_batter, run_expectancy_matrix, park_factors
 
 # =============================
 # Constants & small utilities
