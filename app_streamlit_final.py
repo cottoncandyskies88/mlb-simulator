@@ -7,14 +7,17 @@ import streamlit as st
 from datetime import date
 
 # =============================================================
-# Safe PyBaseball imports (v2.1.0 compatible, with graceful fallbacks)
+# Safe PyBaseball imports (v2.1.0 compatible)
 # =============================================================
+import logging
 try:
+    import pybaseball
     from pybaseball import playerid_lookup, statcast_batter
     run_expectancy_matrix = None
     park_factors = None
+    st.write("✅ PyBaseball loaded successfully!")  # quick verification
 except Exception as e:
-    logging.warning(f"⚠️ PyBaseball import issue: {e}")
+    logging.error(f"❌ PyBaseball import failed: {e}")
     playerid_lookup = statcast_batter = run_expectancy_matrix = park_factors = None
 
 # =============================================================
