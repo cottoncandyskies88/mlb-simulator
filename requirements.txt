@@ -1,6 +1,6 @@
 streamlit
 plotly
-pybaseball
+pybaseball==2.2.2
 pandas
 numpy
 xgboost
